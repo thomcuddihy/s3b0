@@ -6,6 +6,7 @@ import os
 
 client = discord.Client()
 roll_command = "/roll"
+img_base="https://workshop.hometreelab.com/tinker-public/s3b0/raw/master/images/"
 
 Advantage="Advantage"
 Despair="Despair"
@@ -17,6 +18,7 @@ Dark="Dark"
 Light="Light"
 
 White=0xFFFFFF
+Gray=0x95a5a6
 Black=0x000000
 Green=0x2ecc71
 Gold=0xf1c40f
@@ -124,6 +126,13 @@ class SetbackDie(Die):
         6: [Threat]
     }
 
+class DiceResult:
+    def __init__(self):
+        self.title=""
+        self.desc=""
+        self.colour=Green
+        self.img="S.png"
+
 class DicePool:
     def __init__(self):
         self.Advantages=0
@@ -161,41 +170,59 @@ class DicePool:
                     self.Lights+=1
 
     def resolve(self):
-        self.roll(self)
+        self.roll()
         result = ""
+        retResult = DiceResult()
+        retImg=""
         forceOnly = True
         for die in self.Dice:
             if type(die).__name__ != "ForceDie":
                 forceOnly = False
+        if self.Triumps > 0:
+            result = result + "Triump! "
+            retImg = retImg + "Tr"
+        if self.Despairs > 0:
+            result = result + "Despair! "
+            retImg = retImg + "D"
         if (self.Advantages > self.Threats):
-            result = result + "Advantage "
+            result = result + "Advantage! "
+            retImg = retImg + "A"
         if (self.Advantages < self.Threats):
-            result = result + "Threat "
-        
+            result = result + "Threat! "
+            retImg = retImg + "Th"
         if (self.Successes + self.Triumps) > (self.Failures + self.Despairs):
-            if self.Triumps > 0:
-                result = result + "Triump! "
-            else:
-                result = result + "Success! "
+            result = result + "Success! "
+            retImg = retImg + "S"
         if (self.Successes + self.Triumps) < (self.Failures + self.Despairs):
-            if self.Despairs > 0:
-                result = result + "Despair! "
-            else:
-                result = result + "Failure! "
+            result = result + "Failure! "
+            retImg = retImg + "F"
         if (self.Successes + self.Triumps) == (self.Failures + self.Despairs):
             if not forceOnly:
-                result = result + "Draw! "
+                result = result + "Failure! "
+                retImg = retImg + "F"
+        retImg = retImg + ".png"
 
         if (self.Darks + self.Lights > 0):
             if (self.Darks > self.Lights):
                 result = result + "The dark side beckons: " + str(self.Darks-self.Lights)
+                if forceOnly:
+                    retImg = "sith.png"
+                    retResult.colour=Black
             if (self.Darks < self.Lights):
                 result = result + "The light side calls: " + str(self.Lights-self.Darks)
+                if forceOnly:
+                    retImg = "jedi.jpg"
+                    retResult.colour=White
             if (self.Darks == self.Lights):
                 result = result + "You walk the Gray Path"
-            result = result + " "
+                if forceOnly:
+                    retImg = "gray.png"
+                    retResult.colour=Gray
         
-        result = result + "("
+        retResult.title=result
+        retResult.img=retImg
+        result=""
+
         if self.Triumps > 0:
             result = result + str(self.Triumps) + " Triump, "
         if self.Successes > 0:
@@ -212,10 +239,26 @@ class DicePool:
             result = result + str(self.Lights) + " Light, "
         if self.Darks > 0:
             result = result + str(self.Darks) + " Dark, "
-        result=result[:-2]
-        if '(' in result:
-            result = result + ")"
-        return result
+        if result.endswith(', '):
+            result=result[:-2]
+        retResult.desc=result
+
+        # colour stuff
+        if (self.Successes + self.Triumps) < (self.Failures + self.Despairs):
+            retResult.colour=Green
+            if (self.Triumps > 0) and (self.Despairs == 0) and (self.Advantages - self.Threats >= 0):
+                retResult.colour=Gold
+        if (self.Successes + self.Triumps) < (self.Failures + self.Despairs):
+            retResult.colour=Red
+            if (self.Despairs > 0) and (self.Triumps == 0) and (self.Threats - self.Advantages >= 0):
+                retResult.colour=DarkRed
+        if (self.Successes + self.Triumps) == (self.Failures + self.Despairs):
+            if not forceOnly:
+                retResult.colour=Red
+                if (self.Despairs > 0) and (self.Triumps == 0) and (self.Threats - self.Advantages >= 0):
+                    retResult.colour=DarkRed
+        
+        return retResult
 
 def getDie(shortcode):
     die = None
@@ -325,8 +368,13 @@ async def on_message(message):
         await client.send_message(message.channel, msg)
         return
     if message.content.startswith(roll_command):
-        msg = parseRoll(message.content[len(roll_command)+1:])
-        await client.send_message(message.channel, msg)
+        result = parseRoll(message.content[len(roll_command)+1:])
+        if isinstance(result, str):
+            await client.send_message(message.channel, result)
+        else:
+            em = discord.Embed(title=result.title, description=result.desc, colour=result.colour)
+            em.set_image(url=img_base+result.img)
+            await client.send_message(message.channel, embed=em)
 
-token=os.environ['S3B0_TOKEN'])
+token=os.environ['S3B0_TOKEN']
 client.run(token)
