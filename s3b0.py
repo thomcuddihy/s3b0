@@ -13,7 +13,7 @@ Despair="Despair"
 Failure="Failure"
 Success="Success"
 Threat="Threat"
-Triump="Triump"
+Triumph="Triumph"
 Dark="Dark"
 Light="Light"
 
@@ -113,7 +113,7 @@ class ProficiencyDie(Die):
         9: [Success,Advantage],
         10: [Advantage,Advantage],
         11: [Advantage,Advantage],
-        12: [Triump]
+        12: [Triumph]
     }
 
 class SetbackDie(Die):
@@ -140,7 +140,7 @@ class DicePool:
         self.Failures=0
         self.Successes=0
         self.Threats=0
-        self.Triumps=0
+        self.Triumphs=0
         self.Darks=0
         self.Lights=0
         self.Dice=[]
@@ -162,8 +162,8 @@ class DicePool:
                     self.Successes+=1
                 if resolved==Threat:
                     self.Threats+=1
-                if resolved==Triump:
-                    self.Triumps+=1
+                if resolved==Triumph:
+                    self.Triumphs+=1
                 if resolved==Dark:
                     self.Darks+=1
                 if resolved==Light:
@@ -178,8 +178,8 @@ class DicePool:
         for die in self.Dice:
             if type(die).__name__ != "ForceDie":
                 forceOnly = False
-        if self.Triumps > 0:
-            result = result + "Triump! "
+        if self.Triumphs > 0:
+            result = result + "Triumph! "
             retImg = retImg + "Tr"
         if self.Despairs > 0:
             result = result + "Despair! "
@@ -190,13 +190,13 @@ class DicePool:
         if (self.Advantages < self.Threats):
             result = result + "Threat! "
             retImg = retImg + "Th"
-        if (self.Successes + self.Triumps) > (self.Failures + self.Despairs):
+        if (self.Successes + self.Triumphs) > (self.Failures + self.Despairs):
             result = result + "Success! "
             retImg = retImg + "S"
-        if (self.Successes + self.Triumps) < (self.Failures + self.Despairs):
+        if (self.Successes + self.Triumphs) < (self.Failures + self.Despairs):
             result = result + "Failure! "
             retImg = retImg + "F"
-        if (self.Successes + self.Triumps) == (self.Failures + self.Despairs):
+        if (self.Successes + self.Triumphs) == (self.Failures + self.Despairs):
             if not forceOnly:
                 result = result + "Failure! "
                 retImg = retImg + "F"
@@ -223,8 +223,8 @@ class DicePool:
         retResult.img=retImg
         result=""
 
-        if self.Triumps > 0:
-            result = result + str(self.Triumps) + " Triump, "
+        if self.Triumphs > 0:
+            result = result + str(self.Triumphs) + " Triumph, "
         if self.Successes > 0:
             result = result + str(self.Successes) + " Success, "
         if self.Despairs > 0:
@@ -244,18 +244,18 @@ class DicePool:
         retResult.desc=result
 
         # colour stuff
-        if (self.Successes + self.Triumps) < (self.Failures + self.Despairs):
+        if (self.Successes + self.Triumphs) < (self.Failures + self.Despairs):
             retResult.colour=Green
-            if (self.Triumps > 0) and (self.Despairs == 0) and (self.Advantages - self.Threats >= 0):
+            if (self.Triumphs > 0) and (self.Despairs == 0) and (self.Advantages - self.Threats >= 0):
                 retResult.colour=Gold
-        if (self.Successes + self.Triumps) < (self.Failures + self.Despairs):
+        if (self.Successes + self.Triumphs) < (self.Failures + self.Despairs):
             retResult.colour=Red
-            if (self.Despairs > 0) and (self.Triumps == 0) and (self.Threats - self.Advantages >= 0):
+            if (self.Despairs > 0) and (self.Triumphs == 0) and (self.Threats - self.Advantages >= 0):
                 retResult.colour=DarkRed
-        if (self.Successes + self.Triumps) == (self.Failures + self.Despairs):
+        if (self.Successes + self.Triumphs) == (self.Failures + self.Despairs):
             if not forceOnly:
                 retResult.colour=Red
-                if (self.Despairs > 0) and (self.Triumps == 0) and (self.Threats - self.Advantages >= 0):
+                if (self.Despairs > 0) and (self.Triumphs == 0) and (self.Threats - self.Advantages >= 0):
                     retResult.colour=DarkRed
         
         return retResult
