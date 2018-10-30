@@ -179,26 +179,28 @@ class DicePool:
             if type(die).__name__ != "ForceDie":
                 forceOnly = False
         if self.Triumphs > 0:
-            result = result + "Triumph! "
+            result = result + "Triumph ("+ str(self.Triumphs) +")! "
             retImg = retImg + "Tr"
         if self.Despairs > 0:
-            result = result + "Despair! "
+            result = result + "Despair ("+ str(self.Despairs) +")! "
             retImg = retImg + "D"
         if (self.Advantages > self.Threats):
-            result = result + "Advantage! "
+            result = result + "Advantage ("+ str(self.Advantages - self.Threats) +")! "
             retImg = retImg + "A"
         if (self.Advantages < self.Threats):
-            result = result + "Threat! "
+            result = result + "Threat ("+ str(self.Threats - self.Advantages) +")! "
             retImg = retImg + "Th"
         if (self.Successes + self.Triumphs) > (self.Failures + self.Despairs):
-            result = result + "Success! "
+            i = (self.Successes + self.Triumphs) - (self.Failures + self.Despairs)
+            result = result + "Success ("+ str(i) +")! "
             retImg = retImg + "S"
         if (self.Successes + self.Triumphs) < (self.Failures + self.Despairs):
-            result = result + "Failure! "
+            i = (self.Failures + self.Despairs) - (self.Successes + self.Triumphs)
+            result = result + "Failure ("+ str(i) +")! "
             retImg = retImg + "F"
         if (self.Successes + self.Triumphs) == (self.Failures + self.Despairs):
             if not forceOnly:
-                result = result + "Failure! "
+                result = result + "Failure (0)! "
                 retImg = retImg + "F"
         retImg = retImg + ".png"
 
