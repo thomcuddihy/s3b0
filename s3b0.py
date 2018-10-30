@@ -2,7 +2,7 @@
 import discord
 import re
 import logging
-import threading
+import asyncio
 from os import environ
 from random import randint
 
@@ -31,6 +31,7 @@ DarkRed=0x992d22
 LightPip = u"\u26AA"
 DarkPip = u"\u26AB"
 
+LastPlayingIndex=-1
 PlayingQuotes = {
         1: "with det-cord",
         2: "dejarik with a Wookiee",
@@ -356,19 +357,22 @@ def rollDie(min=1, max=6):
     result = randint(min,max)
     return result
 
-async def cyclePlaying(playingTimer):
+async def cyclePlaying():
+    global LastPlayingIndex
     playing=PlayingQuotes[randint(1,len(PlayingQuotes))]
+    while playing == LastPlayingIndex:
+        playing=PlayingQuotes[randint(1,len(PlayingQuotes))]
+    LastPlayingIndex=playing
     print("Playing " + playing)
     await client.change_presence(game=discord.Game(name=playing))
-    if not playingTimer.is_set():
-        threading.Timer(randint(60,600), cyclePlaying, [playingTimer]).start()
+    await asyncio.sleep(randint(60,600))
 
 @client.event
 async def on_ready():
     print("S3B0 connected")
-    playingTimer = threading.Event()
-    await cyclePlaying(playingTimer)
-
+    while True:
+        await asyncio.ensure_future(cyclePlaying())
+        
 @client.event
 async def on_message(message):
     if message.author == client.user:
@@ -401,6 +405,9 @@ async def on_message(message):
             em = discord.Embed(title=result.title, description=result.desc, colour=result.colour)
             if result.img:
                 em.set_image(url=img_base+result.img)
+            else:
+                em.set_footer(text=result.desc)
+                em.description=None
             await client.send_message(message.channel, embed=em)
 
 token=environ['S3B0_TOKEN']
