@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 import discord
-import random
 import re
-import os
+import logging
+import threading
+from os import environ
+from random import randint
+
+logging.basicConfig(level=logging.INFO)
 
 client = discord.Client()
 roll_command = "/roll"
@@ -24,13 +28,26 @@ Green=0x2ecc71
 Gold=0xf1c40f
 Red=0xe74c3c
 DarkRed=0x992d22
+LightPip = u"\u26AA"
+DarkPip = u"\u26AB"
+
+PlayingQuotes = {
+        1: "with det-cord",
+        2: "dejarik with a Wookiee",
+        3: "in a cantina band",
+        4: "with CGI 'remastering'",
+        5: "with midichlorians"
+    }
+
+# more comments!
+# more 'playing' randomly
+# make background of dice images transparent
 
 class Die:
     rollResolve = {}
 
     def roll(self):
         result=rollDie(min=1,max=len(self.rollResolve))
-        print(result)
         resolve=self.rollResolve[result]
         return (str(result), resolve)
 
@@ -131,7 +148,7 @@ class DiceResult:
         self.title=""
         self.desc=""
         self.colour=Green
-        self.img="S.png"
+        self.img=None
 
 class DicePool:
     def __init__(self):
@@ -141,8 +158,6 @@ class DicePool:
         self.Successes=0
         self.Threats=0
         self.Triumphs=0
-        self.Darks=0
-        self.Lights=0
         self.Dice=[]
 
     def roll(self):
@@ -150,7 +165,6 @@ class DicePool:
             result=die.roll()
             resultNum=result[0]
             resultResolved=result[1]
-            print(resultResolved)
             for resolved in resultResolved:
                 if resolved==Advantage:
                     self.Advantages+=1
@@ -164,20 +178,48 @@ class DicePool:
                     self.Threats+=1
                 if resolved==Triumph:
                     self.Triumphs+=1
-                if resolved==Dark:
-                    self.Darks+=1
+
+    def resolveForce(self):
+        result = ""
+        nLight = 0
+        nDark = 0
+        retResult = DiceResult()
+        for die in self.Dice:
+            result=die.roll()
+            resultNum=result[0]
+            resultResolved=result[1]
+            retResult.desc = retResult.desc + "["
+            for resolved in resultResolved:
                 if resolved==Light:
-                    self.Lights+=1
+                    retResult.desc = retResult.desc + LightPip
+                    nLight+=1
+                if resolved==Dark:
+                    retResult.desc = retResult.desc + DarkPip
+                    nDark+=1
+            retResult.desc = retResult.desc + "] "
+
+        retResult.colour=Gray
+        if (nLight > 0):
+            retResult.title = retResult.title + "Light (" + str(nLight) + ") "
+            if (nDark == 0):
+                retResult.colour=White
+        if (nDark > 0):
+            retResult.title = retResult.title + "Dark (" + str(nDark) + ")"
+            if (nLight == 0):
+                retResult.colour=Black
+
+        return retResult
 
     def resolve(self):
+        for die in self.Dice:
+            if type(die).__name__ == "ForceDie":
+                return self.resolveForce()
+        
         self.roll()
         result = ""
         retResult = DiceResult()
         retImg=""
-        forceOnly = True
-        for die in self.Dice:
-            if type(die).__name__ != "ForceDie":
-                forceOnly = False
+        
         if self.Triumphs > 0:
             result = result + "Triumph ("+ str(self.Triumphs) +")! "
             retImg = retImg + "Tr"
@@ -199,28 +241,10 @@ class DicePool:
             result = result + "Failure ("+ str(i) +")! "
             retImg = retImg + "F"
         if (self.Successes + self.Triumphs) == (self.Failures + self.Despairs):
-            if not forceOnly:
-                result = result + "Failure (0)! "
-                retImg = retImg + "F"
-        retImg = retImg + ".png"
+            result = result + "Failure (0)! "
+            retImg = retImg + "F"                
 
-        if (self.Darks + self.Lights > 0):
-            if (self.Darks > self.Lights):
-                result = result + "The dark side beckons: " + str(self.Darks-self.Lights)
-                if forceOnly:
-                    retImg = "sith.png"
-                    retResult.colour=Black
-            if (self.Darks < self.Lights):
-                result = result + "The light side calls: " + str(self.Lights-self.Darks)
-                if forceOnly:
-                    retImg = "jedi.jpg"
-                    retResult.colour=White
-            if (self.Darks == self.Lights):
-                result = result + "You walk the Gray Path"
-                if forceOnly:
-                    retImg = "gray.png"
-                    retResult.colour=Gray
-        
+        retImg = retImg + ".png"
         retResult.title=result
         retResult.img=retImg
         result=""
@@ -237,10 +261,6 @@ class DicePool:
             result = result + str(self.Advantages) + " Advantage, "
         if self.Threats > 0:
             result = result + str(self.Threats) + " Threat, "
-        if self.Lights > 0:
-            result = result + str(self.Lights) + " Light, "
-        if self.Darks > 0:
-            result = result + str(self.Darks) + " Dark, "
         if result.endswith(', '):
             result=result[:-2]
         retResult.desc=result
@@ -255,10 +275,9 @@ class DicePool:
             if (self.Despairs > 0) and (self.Triumphs == 0) and (self.Threats - self.Advantages >= 0):
                 retResult.colour=DarkRed
         if (self.Successes + self.Triumphs) == (self.Failures + self.Despairs):
-            if not forceOnly:
-                retResult.colour=Red
-                if (self.Despairs > 0) and (self.Triumphs == 0) and (self.Threats - self.Advantages >= 0):
-                    retResult.colour=DarkRed
+            retResult.colour=Red
+            if (self.Despairs > 0) and (self.Triumphs == 0) and (self.Threats - self.Advantages >= 0):
+                retResult.colour=DarkRed
         
         return retResult
 
@@ -281,9 +300,7 @@ def getDie(shortcode):
     return die
 
 def parseRoll(diceString):
-    print("Parsing: " + diceString)
     fail="Unable to parse dice command. Please see " + roll_command + " for usage"
-    
     dice=[x for x in re.split('(\d*?[abcdfhpst])',diceString) if x]
     
     if len(dice) == 0:
@@ -292,9 +309,11 @@ def parseRoll(diceString):
     if len(dice) > 1 and ('t' in diceString or 'h' in diceString):
         return "Can't chain d10 or d100 rolls!"
     
+    if len(dice) > 1 and ('f' in diceString):
+        return "Can't chain Force die rolls!"
+
     dp = DicePool()
     for die in dice:
-        print("Die: " + die)
         s=re.search('(\d*?)([abcdfhpst])', die)
         if not s:
             die="1"+die
@@ -302,7 +321,6 @@ def parseRoll(diceString):
         if not s:
             return fail
         g=s.groups()
-        print(g)
         if len(g) != 2:
             return fail
         try:
@@ -310,7 +328,6 @@ def parseRoll(diceString):
         except:
             num=1
         dieCode=g[1]
-        print("DC: " + dieCode)
         
         if len(dieCode) > 1:
             return fail
@@ -327,7 +344,7 @@ def parseRoll(diceString):
                 results.append(result)
                 total=total+result
             return str(total) + " ("+ '+'.join(map(str,results))+ ")"
-        # if star wars roll:
+        # if normal star wars roll:
         for i in range(num):
             d = getDie(dieCode)
             if not d:
@@ -336,14 +353,21 @@ def parseRoll(diceString):
     return dp.resolve()
 
 def rollDie(min=1, max=6):
-    print("Rolling: "+str(min)+","+str(max))
-    result = random.randint(min,max)
+    result = randint(min,max)
     return result
+
+async def cyclePlaying(playingTimer):
+    playing=PlayingQuotes[randint(1,len(PlayingQuotes))]
+    print("Playing " + playing)
+    await client.change_presence(game=discord.Game(name=playing))
+    if not playingTimer.is_set():
+        threading.Timer(randint(60,600), cyclePlaying, [playingTimer]).start()
 
 @client.event
 async def on_ready():
     print("S3B0 connected")
-    await client.change_presence(game=discord.Game(name="the Empire for fools"))
+    playingTimer = threading.Event()
+    await cyclePlaying(playingTimer)
 
 @client.event
 async def on_message(message):
@@ -354,18 +378,18 @@ async def on_message(message):
             /roll [[number=1][die type]]...
             Die Types:
             a: Ability
-            b: Boost
+            p: Proficiency
             c: Challenge
             d: Difficulty
-            f: Force
-            h: Hundred (d100) (can't be chained)
-            p: Proficiency
+            b: Boost
             s: Setback
+            f: Force (can't be chained)
             t: Ten (d10) (can't be chained)
+            h: Hundred (d100) (can't be chained)
 
             Example:
             /roll 3a1p2c1b2s
-            /roll 3t
+            /roll 3f
             /roll h"""
         await client.send_message(message.channel, msg)
         return
@@ -375,8 +399,9 @@ async def on_message(message):
             await client.send_message(message.channel, result)
         else:
             em = discord.Embed(title=result.title, description=result.desc, colour=result.colour)
-            em.set_image(url=img_base+result.img)
+            if result.img:
+                em.set_image(url=img_base+result.img)
             await client.send_message(message.channel, embed=em)
 
-token=os.environ['S3B0_TOKEN']
+token=environ['S3B0_TOKEN']
 client.run(token)
