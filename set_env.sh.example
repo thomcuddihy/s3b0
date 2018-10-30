@@ -1,0 +1,2 @@
+# fill in your token, and then `source set_env.sh` or add to RC/Profile scripts
+export S3B0_TOKEN="your-token-here"
