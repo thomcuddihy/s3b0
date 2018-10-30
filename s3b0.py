@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO)
 
 client = discord.Client()
 roll_command = "/roll"
-img_base="https://workshop.hometreelab.com/tinker-public/s3b0/raw/master/images/"
+img_base="https://workshop.hometreelab.com/tinker-public/s3b0/raw/master/images/alpha/"
 
 Advantage="Advantage"
 Despair="Despair"
@@ -37,12 +37,10 @@ PlayingQuotes = {
         2: "dejarik with a Wookiee",
         3: "in a cantina band",
         4: "with CGI 'remastering'",
-        5: "with midichlorians"
+        5: "with midichlorians",
+        6: "the Imperial March",
+        7: "Duel of the Fates"
     }
-
-# more comments!
-# more 'playing' randomly
-# make background of dice images transparent
 
 class Die:
     rollResolve = {}
