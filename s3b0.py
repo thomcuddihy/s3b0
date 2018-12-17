@@ -6,6 +6,11 @@ import asyncio
 from os import environ
 from random import randint
 
+# Todo
+# update the voice_client handling to account for bot being active on multiple servers at the same time
+# add auto population of the sfx library based on the filesystem
+# add command to update sfx population (see above) while running (i.e. without restart of bot)
+
 logging.basicConfig(level=logging.INFO)
 
 client = discord.Client()
@@ -397,23 +402,25 @@ async def on_message(message):
     if message.author == client.user:
         return
     if message.content == roll_command:
-        msg = """Usage:
-            /roll [[number=1][die type]]...
-            Die Types:
-            a: Ability
-            p: Proficiency
-            c: Challenge
-            d: Difficulty
-            b: Boost
-            s: Setback
-            f: Force (can't be chained)
-            t: Ten (d10) (can't be chained)
-            h: Hundred (d100) (can't be chained)
+        msg = """```
+/roll [[number=1][die type]]...
 
-            Example:
-            /roll 3a1p2c1b2s
-            /roll 3f
-            /roll h"""
+Die Types:
+    a: Ability
+    p: Proficiency
+    c: Challenge
+    d: Difficulty
+    b: Boost
+    s: Setback
+    f: Force (can't be chained)
+    t: Ten (d10) (can't be chained)
+    h: Hundred (d100) (can't be chained)
+
+Example:
+    /roll 3a1p2c1b2s
+    /roll 3f
+    /roll h
+```"""
         await client.send_message(message.channel, msg)
         return
     if message.content.startswith(roll_command):
@@ -437,7 +444,7 @@ async def on_message(message):
                 await client.send_message(message.channel, msg)
         else:
             msg = """I need to be invited into your active voice channel first!
-            Enter `/joinme` _after_ you've joined a voice channel"""
+Enter `/joinme` _after_ you've joined a voice channel"""
             await client.send_message(message.channel, msg)
     if message.content.startswith(voice_leave_command):
         if voice_client:
@@ -460,7 +467,7 @@ async def on_message(message):
             await client.send_message(message.channel, msg)
         else:
             msg = """You're not in any voice channels on this server!
-            Enter `/joinme` _after_ you've joined a voice channel"""
+Enter `/joinme` _after_ you've joined a voice channel"""
             await client.send_message(message.channel, msg)
 
 token=environ['S3B0_TOKEN']
