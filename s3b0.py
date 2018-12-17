@@ -9,7 +9,12 @@ from random import randint
 logging.basicConfig(level=logging.INFO)
 
 client = discord.Client()
+discord.opus.load_opus
+voice_client = None
 roll_command = "/roll"
+voice_join_command = "/joinme"
+voice_leave_command = "/nini"
+voice_play_command = "/sfx"
 img_base="https://workshop.hometreelab.com/tinker-public/s3b0/raw/master/images/alpha/"
 
 Advantage="Advantage"
@@ -30,6 +35,10 @@ Red=0xe74c3c
 DarkRed=0x992d22
 LightPip = u"\u26AA"
 DarkPip = u"\u26AB"
+
+sfxDict = {
+    "kit": 10
+}
 
 LastPlayingIndex=-1
 PlayingQuotes = {
@@ -355,6 +364,17 @@ def rollDie(min=1, max=6):
     result = randint(min,max)
     return result
 
+def playSFX(command):
+    global voice_client
+    if command in sfxDict:
+        sfxItems = sfxDict[command]
+        result = randint(1,sfxItems)
+        player = voice_client.create_ffmpeg_player('sfx/' + command + '/' + str(result) + '.mp3')
+        player.start()
+        return None
+    else:
+        return "No SFX found for " + command
+
 async def cyclePlaying():
     global LastPlayingIndex
     playing=PlayingQuotes[randint(1,len(PlayingQuotes))]
@@ -373,6 +393,7 @@ async def on_ready():
         
 @client.event
 async def on_message(message):
+    global voice_client
     if message.author == client.user:
         return
     if message.content == roll_command:
@@ -407,6 +428,40 @@ async def on_message(message):
                 em.set_footer(text=result.desc)
                 em.description=None
             await client.send_message(message.channel, embed=em)
+    
+    # voice stuff
+    if message.content.startswith(voice_play_command):
+        if voice_client:
+            msg = playSFX(message.content[len(voice_play_command)+1:])
+            if msg:
+                await client.send_message(message.channel, msg)
+        else:
+            msg = """I need to be invited into your active voice channel first!
+            Enter `/joinme` _after_ you've joined a voice channel"""
+            await client.send_message(message.channel, msg)
+    if message.content.startswith(voice_leave_command):
+        if voice_client:
+            await voice_client.disconnect()
+            voice_client = None
+            msg = "Nini!"
+            await client.send_message(message.channel, msg)
+        else:
+            msg = "I'm not in any voice channels!"
+            await client.send_message(message.channel, msg)
+    if message.content.startswith(voice_join_command):
+        if voice_client:
+            await voice_client.disconnect()
+            voice_client = None
+        author = message.author
+        channel = author.voice_channel
+        if channel:
+            voice_client = await client.join_voice_channel(channel)
+            msg = "I'm in!"
+            await client.send_message(message.channel, msg)
+        else:
+            msg = """You're not in any voice channels on this server!
+            Enter `/joinme` _after_ you've joined a voice channel"""
+            await client.send_message(message.channel, msg)
 
 token=environ['S3B0_TOKEN']
 client.run(token)
