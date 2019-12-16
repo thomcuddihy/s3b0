@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.INFO)
 client = discord.Client()
 discord.opus.load_opus
 roll_command = "/swoll"
-img_base="https://workshop.hometreelab.com/tinker-public/s3b0/raw/master/images/alpha/"
+img_base="https://raw.githubusercontent.com/thomcuddihy/s3b0/master/images/alpha/"
 
 Advantage="Advantage"
 Despair="Despair"
