@@ -1,5 +1,5 @@
-# s3b0
-##Stars Wars Fantasy Flight dice roller bot for Discord.
+# S3B0
+## Stars Wars Fantasy Flight dice roller bot for Discord.
 
 [Discord Bot entry.](https://top.gg/bot/506265070888681472)
 
