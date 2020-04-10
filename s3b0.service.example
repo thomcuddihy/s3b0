@@ -1,0 +1,14 @@
+[Unit]
+Description=S3B0 bot service
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=tinker
+Environment=S3B0_TOKEN=bot_token
+ExecStart=/path/to/s3b0/s3b0.py
+
+[Install]
+WantedBy=multi-user.target
