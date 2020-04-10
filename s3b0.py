@@ -32,6 +32,7 @@ DarkRed=0x992d22
 LightPip = u"\u26AA"
 DarkPip = u"\u26AB"
 
+FirstConnect=True
 LastPlayingIndex=-1
 PlayingQuotes = {
         1: "with det-cord",
@@ -367,9 +368,12 @@ async def cyclePlaying():
 
 @client.event
 async def on_ready():
+    global FirstConnect
     print("S3B0 connected")
-    while True:
-        await asyncio.ensure_future(cyclePlaying())
+    if FirstConnect:
+        FirstConnect = False
+        while True:
+            await asyncio.ensure_future(cyclePlaying())
         
 @client.event
 async def on_message(message):
