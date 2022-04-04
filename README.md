@@ -34,4 +34,6 @@ Example:
 
 Needs environmental variable S3B0_TOKEN to be set if you want to run this yourself. See `set_env.sh.example` for a Linux/OSX method.
 
+Using py-cord v2 library.
+
 Please open an issue for any bugs or feature requests.

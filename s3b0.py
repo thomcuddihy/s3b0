@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
 import discord
-import re
-import logging
-import asyncio
-from os import environ
+import re, logging
 from random import randint
+from os import environ
 
 logging.basicConfig(level=logging.INFO)
 
-client = discord.Client()
-discord.opus.load_opus
-roll_command = "/swoll"
+bot = discord.Bot()
+
 img_base="https://raw.githubusercontent.com/thomcuddihy/s3b0/master/images/alpha/"
 
 Advantage="Advantage"
@@ -31,18 +28,6 @@ Red=0xe74c3c
 DarkRed=0x992d22
 LightPip = u"\u26AA"
 DarkPip = u"\u26AB"
-
-FirstConnect=True
-LastPlayingIndex=-1
-PlayingQuotes = {
-        1: "with det-cord",
-        2: "dejarik with a Wookiee",
-        3: "in a cantina band",
-        4: "with CGI 'remastering'",
-        5: "with midichlorians",
-        6: "the Imperial March",
-        7: "Duel of the Fates"
-    }
 
 class Die:
     rollResolve = {}
@@ -211,7 +196,7 @@ class DicePool:
 
         return retResult
 
-    def resolve(self):
+    def resolve(self, diceString):
         for die in self.Dice:
             if type(die).__name__ == "ForceDie":
                 return self.resolveForce()
@@ -264,7 +249,10 @@ class DicePool:
             result = result + str(self.Threats) + " Threat, "
         if result.endswith(', '):
             result=result[:-2]
-        retResult.desc=result
+        retResult.desc=f"""
+Roll: {diceString}
+Result: {result}
+"""
 
         # colour stuff
         if (self.Successes + self.Triumphs) < (self.Failures + self.Despairs):
@@ -301,7 +289,34 @@ def getDie(shortcode):
     return die
 
 def parseRoll(diceString):
-    fail="Unable to parse dice command. Please see " + roll_command + " for usage"
+    help = """
+```
+/swoll [[number=1][die type]]...
+
+Die Types:
+    a: Ability
+    p: Proficiency
+    c: Challenge
+    d: Difficulty
+    b: Boost
+    s: Setback
+    f: Force (can't be chained)
+    t: Ten (d10) (can't be chained)
+    h: Hundred (d100) (can't be chained)
+
+Example:
+    /swoll 3a1p2c1b2s
+    /swoll 3f
+    /swoll h
+```
+"""
+    fail="""
+Unable to parse dice command. Usage:
+""" + help
+
+    if diceString == "help":
+        return help
+
     dice=[x for x in re.split('(\d*?[abcdfhpst])',diceString) if x]
     
     if len(dice) == 0:
@@ -351,68 +366,31 @@ def parseRoll(diceString):
             if not d:
                 return fail
             dp.Dice.append(d)
-    return dp.resolve()
+    return dp.resolve(diceString)
 
 def rollDie(min=1, max=6):
     result = randint(min,max)
     return result
 
-async def cyclePlaying():
-    global LastPlayingIndex
-    playing=PlayingQuotes[randint(1,len(PlayingQuotes))]
-    while playing == LastPlayingIndex:
-        playing=PlayingQuotes[randint(1,len(PlayingQuotes))]
-    LastPlayingIndex=playing
-    await client.change_presence(game=discord.Game(name=playing))
-    await asyncio.sleep(randint(60,600))
-
-@client.event
-async def on_ready():
-    global FirstConnect
-    print("S3B0 connected")
-    if FirstConnect:
-        FirstConnect = False
-        while True:
-            await asyncio.ensure_future(cyclePlaying())
-        
-@client.event
-async def on_message(message):
-    if message.author == client.user:
-        return
-    if message.content == roll_command:
-        msg = """```
-/swoll [[number=1][die type]]...
-
-Die Types:
-    a: Ability
-    p: Proficiency
-    c: Challenge
-    d: Difficulty
-    b: Boost
-    s: Setback
-    f: Force (can't be chained)
-    t: Ten (d10) (can't be chained)
-    h: Hundred (d100) (can't be chained)
-
-Example:
-    /swoll 3a1p2c1b2s
-    /swoll 3f
-    /swoll h
-```"""
-        await client.send_message(message.channel, msg)
-        return
-    if message.content.startswith(roll_command):
-        result = parseRoll(message.content[len(roll_command)+1:])
-        if isinstance(result, str):
-            await client.send_message(message.channel, result)
+@bot.slash_command(name="swoll")
+async def star_wars_roll(
+    ctx: discord.ApplicationContext,
+    dice: discord.Option(str, "Dice string. Enter 'help' for more details.")
+):
+    """
+    Stars Wars Fantasy Flight dice roll.
+    """
+    result = parseRoll(dice)
+    if isinstance(result, str):
+        await ctx.respond(result)
+    else:
+        em = discord.Embed(title=result.title, description=result.desc, colour=result.colour)
+        if result.img:
+            em.set_image(url=img_base+result.img)
         else:
-            em = discord.Embed(title=result.title, description=result.desc, colour=result.colour)
-            if result.img:
-                em.set_image(url=img_base+result.img)
-            else:
-                em.set_footer(text=result.desc)
-                em.description=None
-            await client.send_message(message.channel, embed=em)
-    
+            em.set_footer(text=result.desc)
+            em.description=None
+        await ctx.respond(embed=em)
+
 token=environ['S3B0_TOKEN']
-client.run(token)
+bot.run(token)
